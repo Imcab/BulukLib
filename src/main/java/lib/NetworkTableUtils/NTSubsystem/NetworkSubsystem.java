@@ -8,6 +8,7 @@ import edu.wpi.first.math.kinematics.*;
 
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 import lib.NetworkTableUtils.NTSubsystem.Interfaces.*;
@@ -16,8 +17,8 @@ import lib.NetworkTableUtils.SupplierPublishers.*;
 
 public abstract class NetworkSubsystem extends SubsystemBase {
 
-    private static final Map<String, Boolean> triggerState = new HashMap<>();
-    private static final List<Runnable> registeredPublishers = new ArrayList<>();
+    private static final Map<String, Boolean> triggerState = new ConcurrentHashMap<>();
+    private static final Set<Runnable> registeredPublishers = new HashSet<>();
 
     public NetworkSubsystem() {
         registerNetworkTriggers();
@@ -41,7 +42,7 @@ public abstract class NetworkSubsystem extends SubsystemBase {
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
-                    instance.getEntry(key).setBoolean(false); // 🔹 Reset después de ejecución
+                    instance.getEntry(key).setBoolean(false);
                     }
                 });
             }
@@ -83,6 +84,9 @@ public abstract class NetworkSubsystem extends SubsystemBase {
     }
 
     private void registerAnnotatedPublishers() {
+
+        clearPublishers();
+
         for (Method method : this.getClass().getDeclaredMethods()) {
             if (method.isAnnotationPresent(AutoNetworkPublisher.class)) {
                 String key = method.getAnnotation(AutoNetworkPublisher.class).key();
@@ -112,8 +116,12 @@ public abstract class NetworkSubsystem extends SubsystemBase {
         }
     }
 
-    private static void registerPublisher(Runnable publisher) {
+    private void registerPublisher(Runnable publisher) {
         registeredPublishers.add(publisher);
+    }
+
+    public void clearPublishers(){
+        registeredPublishers.clear();
     }
 
     @Override
